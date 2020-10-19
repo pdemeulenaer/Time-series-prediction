@@ -14,18 +14,17 @@ The problem is divided into:
 * Serve the model on `unseen` dataset (when serving mode) or on test set (when evaluation mode)
 
 
-
 ## Files
 
-- `data_cloud.json`: configuration file for the data generation
+- `data.json`: configuration file for the data generation (temporarily included in the training and scoring codes)
 
-- `config.json`: model configuration file
+- `config.json`: model configuration file (temporarily included in the training and scoring codes)
 
-- `synthetic_data_generation.ipynb` : the notebook for synthetic data generation
+- `synthetic_data_generation.py` : the code for synthetic data generation
 
-- `training.ipynb`: the notebook for model training
+- `training.py`: the code for model training
 
-- `scoring.ipynb`: the notebook for model serving / evaluation
+- `scoring.py`: the code for model serving / evaluation
 
 - `utils.py`: the python module containing helper functions
 

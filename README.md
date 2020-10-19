@@ -16,16 +16,16 @@ The problem is divided into:
 
 ## Files
 
-- `data.json`: configuration file for the data generation (temporarily included in the training and scoring codes)
+- `notebooks/data.json`: configuration file for the data generation (temporarily included in the training and scoring codes)
 
-- `config.json`: model configuration file (temporarily included in the training and scoring codes)
+- `notebooks/config.json`: model configuration file (temporarily included in the training and scoring codes)
 
-- `synthetic_data_generation.py` : the code for synthetic data generation
+- `notebooks/synthetic_data_generation.py` : the code for synthetic data generation
 
-- `training.py`: the code for model training
+- `notebooks/training.py`: the code for model training
 
-- `scoring.py`: the code for model serving / evaluation
+- `notebooks/scoring.py`: the code for model serving / evaluation
 
-- `utils.py`: the python module containing helper functions
+- `notebooks/utils.py`: the python module containing helper functions
 
-autoencoder folder (old): This folder contains examples of how to perform time series forecast using LSTM autoencoders and 1-d convolutional neural networks in Keras
+old-autoencoder folder (old): This folder contains examples of how to perform time series forecast using LSTM autoencoders and 1-d convolutional neural networks in Keras

@@ -151,8 +151,7 @@ stages:
                 "l1_ratio": "0.5"
               }
             },
-            #"existing_cluster_id": "$(databricks.cluster.id)",
-            "new_cluster": "$(databricks.cluster.id)", 
+            "existing_cluster_id": "$(databricks.cluster.id)",
             "name": "$(databricks.job.train.name)",
             "max_concurrent_runs": 1,
             "timeout_seconds": 86400,

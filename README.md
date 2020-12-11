@@ -1,3 +1,5 @@
+[![Build Status](https://dev.azure.com/pdemeulenaer/test/_apis/build/status/pdemeulenaer.Time-series-prediction?branchName=master)](https://dev.azure.com/pdemeulenaer/test/_build/latest?definitionId=6&branchName=master)
+
 # Time series prediction using 1-D Convolutional Neural Network for big data
 
 The model is described in the associated Medium post: [https://medium.com/p/168b47e54d54](https://medium.com/p/168b47e54d54)

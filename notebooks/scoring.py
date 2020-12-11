@@ -85,8 +85,8 @@ spark.conf.set("spark.databricks.io.cache.enabled", "false")
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "false")
 
-# blob_name = "blob1"
-# account_name = "aacdlml0461491171"
+# blob_name = ""
+# account_name = ""
 # storageKey1 = dbutils.secrets.get(scope = "key-vault-secrets-cloudai", key = "storageaccountcloudaiKey1")
 # spark.conf.set("fs.azure.account.key."+account_name+".blob.core.windows.net", storageKey1)
 

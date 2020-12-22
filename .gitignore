@@ -1,0 +1,7 @@
+.venv/ # your virtual environment is pretty huge
+.vscode/* # you may want to share debug configurations sometimes
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+*.egg-info
+.env # contains your secrets

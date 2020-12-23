@@ -1,0 +1,33 @@
+{
+    "dev": {    
+        "table_to_train_on": "cashflow_ts_mock_100K_ts_3spikes",
+        "table_to_score": "cashflow_ts_mock_2p5M_ts_heldout",
+        "table_scored": "cashflow_ts_mock_2p5M_ts_served_final",
+        "cashflow_s1_out_scoring": "cashflow_ts_mock_2p5M_ts_s1",
+        "cashflow_s2_out_scoring": "cashflow_ts_mock_2p5M_ts_s2",
+        "table_test_for_performance": "cashflow_test_100K_ts_3spikes",
+        "table_test_for_performance_scored": "cashflow_test_scored"     
+    },  
+    "prod": {    
+        "table_to_train_on": "cashflow_ts_mock_100K_ts_3spikes",
+        "table_to_score": "cashflow_ts_mock_2p5M_ts_heldout",
+        "table_scored": "cashflow_ts_mock_2p5M_ts_served_final",
+        "cashflow_s1_out_scoring": "cashflow_ts_mock_2p5M_ts_s1",
+        "cashflow_s2_out_scoring": "cashflow_ts_mock_2p5M_ts_s2",
+        "table_test_for_performance": "cashflow_test_100K_ts_3spikes",
+        "table_test_for_performance_scored": "cashflow_test_scored"     
+    }, 
+    "synthetic_data": {    
+        "table_to_train_on": "cashflow_ts_mock_100K_ts_3spikes",
+        "table_to_score": "cashflow_ts_mock_2p5M_ts_heldout",
+        "table_scored": "cashflow_ts_mock_2p5M_ts_served_final",
+        "cashflow_s1_out_scoring": "cashflow_ts_mock_2p5M_ts_s1",
+        "cashflow_s2_out_scoring": "cashflow_ts_mock_2p5M_ts_s2",
+        "table_test_for_performance": "cashflow_test_100K_ts_3spikes",
+        "table_test_for_performance_scored": "cashflow_test_scored"     
+    },          
+    "start_date": "2018-12-01", 
+    "end_date": "2020-03-31",
+    "number_of_historical_days": "365",
+    "number_of_predicted_days": "92"
+}

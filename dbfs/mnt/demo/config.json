@@ -1,0 +1,13 @@
+{
+    "model_name": "tf_models_100K_ts_3spikes_dummy",
+    "hyperParameters": {
+        "filters": 64,
+        "kernel_size": 2,
+        "activation": "relu",
+        "pool_size": "2",
+        "dense_units": "50",
+        "loss": "mae",
+        "batch_size": 200,        
+        "epochs": 15
+    }
+}

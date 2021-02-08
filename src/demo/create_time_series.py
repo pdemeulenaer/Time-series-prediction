@@ -3,7 +3,6 @@
 # importing the packages 
 # ===========================
 
-import os
 import sys, os, inspect
 # https://codeolives.com/2020/01/10/python-reference-module-in-parent-directory/
 #currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))

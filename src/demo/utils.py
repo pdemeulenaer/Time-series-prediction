@@ -17,14 +17,14 @@ import random
 from scipy import signal
 from statsmodels.tsa.seasonal import seasonal_decompose
 from dateutil.relativedelta import relativedelta
-# from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 # from pyspark.context import SparkContext
 # from pyspark.sql.session import SparkSession
-# from pyspark.sql.window import Window
-# import pyspark.sql.functions as F
-# #from pyspark.sql.functions import udf
-# from pyspark.sql.functions import pandas_udf,PandasUDFType
-# from pyspark.sql.types import ArrayType, FloatType
+from pyspark.sql.window import Window
+import pyspark.sql.functions as F
+#from pyspark.sql.functions import udf
+from pyspark.sql.functions import pandas_udf,PandasUDFType
+from pyspark.sql.types import ArrayType, FloatType
 # import tensorflow as tf
 # from mlflow.tracking.client import MlflowClient
 
@@ -197,328 +197,328 @@ def time_series_generator(size=500,
     return np.around(ts,decimals=2).tolist(), signal_type_int    
 
 
-# def pre_processing(ts_balance, end_date, spark, serving=False):
-#     '''
-#     This function performs several pre-processing tasks before TRAINING:
-#     - scales the time series (standardization: mean=0, std=1)
-#     - extrapolates linearly (first order extrapolation) the trend to the next 3 months (92 days)
-#     :param (spark dataframe) ts_balance:  the spark dataframe containing time series with the column 'balance_detrend_1MW'
-#     :param (string) end_date: the end date ('YYYY-MM-DD' string format)
-#     :param (spark instance) spark: the spark instance
-#     :param (boolean) serving: True if processing data for serving (skips the 'y' column)
-#     :return (spark dataframe): the same input dataframe with added columns:
-#                - mean                           : the mean of the time series. Used for scaling the time series
-#                - std                            : the standard deviation of the time series. Used for scaling the time series
-#                - balance_detrend_1MW_scaled     : the time series scaled
-#                - X                              : the time series part to be trained on
-#                - y                              : the time series part to be predicted (92 days, 3 months) NOT USED IN SERVING MODE!
-#                - trend_next_3months_1MW         : the linear extrapolation of the trend up to next 3 months
-#     '''
+def pre_processing(ts_balance, end_date, spark, serving=False):
+    '''
+    This function performs several pre-processing tasks before TRAINING:
+    - scales the time series (standardization: mean=0, std=1)
+    - extrapolates linearly (first order extrapolation) the trend to the next 3 months (92 days)
+    :param (spark dataframe) ts_balance:  the spark dataframe containing time series with the column 'balance_detrend_1MW'
+    :param (string) end_date: the end date ('YYYY-MM-DD' string format)
+    :param (spark instance) spark: the spark instance
+    :param (boolean) serving: True if processing data for serving (skips the 'y' column)
+    :return (spark dataframe): the same input dataframe with added columns:
+               - mean                           : the mean of the time series. Used for scaling the time series
+               - std                            : the standard deviation of the time series. Used for scaling the time series
+               - balance_detrend_1MW_scaled     : the time series scaled
+               - X                              : the time series part to be trained on
+               - y                              : the time series part to be predicted (92 days, 3 months) NOT USED IN SERVING MODE!
+               - trend_next_3months_1MW         : the linear extrapolation of the trend up to next 3 months
+    '''
 
-#     @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
-#     def trend2(x,window_size_days): #, window_size_days
-#         '''
-#         This function computes the trend of a time series x, using a time window of size window_size_days
-#         :param (list) x: Timeseries to operate on
-#         :param (int) window_size_days: Window size for seasonality decomposition
-#         :return (list): Trend values, same length as x
-#         '''
+    # @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
+    # def trend2(x,window_size_days): #, window_size_days
+    #     '''
+    #     This function computes the trend of a time series x, using a time window of size window_size_days
+    #     :param (list) x: Timeseries to operate on
+    #     :param (int) window_size_days: Window size for seasonality decomposition
+    #     :return (list): Trend values, same length as x
+    #     '''
 
-#         #decomposed_ts = seasonal_decompose(np.array(x), model='additive', freq=30, extrapolate_trend=1)
-#         #trend = np.around(decomposed_ts.trend, decimals=3)
-#         #return trend.tolist()
-#         #return x.apply(lambda v: np.around(seasonal_decompose(v, model='additive', freq=30, extrapolate_trend=1).trend, decimals=3) )
-#         return Series([np.around(seasonal_decompose(np.array(c1), model='additive', freq=c2, extrapolate_trend=1).trend, decimals=3) for c1,c2 in zip(x,window_size_days)])
+    #     #decomposed_ts = seasonal_decompose(np.array(x), model='additive', freq=30, extrapolate_trend=1)
+    #     #trend = np.around(decomposed_ts.trend, decimals=3)
+    #     #return trend.tolist()
+    #     #return x.apply(lambda v: np.around(seasonal_decompose(v, model='additive', freq=30, extrapolate_trend=1).trend, decimals=3) )
+    #     return Series([np.around(seasonal_decompose(np.array(c1), model='additive', freq=c2, extrapolate_trend=1).trend, decimals=3) for c1,c2 in zip(x,window_size_days)])
 
-#     @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
-#     def detrend2(x,trend):
-#         '''
-#         This function subtracts a given trend from a timeseries
-#         :param (list) x: Timeseries to operate on
-#         :param (list) trend: The trend to be subtracted
-#         :return (list): Detrended timeseries
-#         '''
-#         #return np.around(np.array(x) - np.array(trend), decimals=3)
-#         return Series([np.around(np.array(c1) - np.array(c2), decimals=3) for c1,c2 in zip(x,trend)])
+    # @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
+    # def detrend2(x,trend):
+    #     '''
+    #     This function subtracts a given trend from a timeseries
+    #     :param (list) x: Timeseries to operate on
+    #     :param (list) trend: The trend to be subtracted
+    #     :return (list): Detrended timeseries
+    #     '''
+    #     #return np.around(np.array(x) - np.array(trend), decimals=3)
+    #     return Series([np.around(np.array(c1) - np.array(c2), decimals=3) for c1,c2 in zip(x,trend)])
 
-#     @F.pandas_udf("float", PandasUDFType.SCALAR)
-#     def mean_for_scaling2(x):
-#         '''
-#         This function computes the mean of a time series x
-#         :param (list) x: The timeseries to compute the mean for
-#         :return (float): Mean value
-#         '''
-#         # TODO: Add a time window on the mean computation!
-#         return Series([np.around(np.mean(c1), decimals=3) for c1 in x])
+    # @F.pandas_udf("float", PandasUDFType.SCALAR)
+    # def mean_for_scaling2(x):
+    #     '''
+    #     This function computes the mean of a time series x
+    #     :param (list) x: The timeseries to compute the mean for
+    #     :return (float): Mean value
+    #     '''
+    #     # TODO: Add a time window on the mean computation!
+    #     return Series([np.around(np.mean(c1), decimals=3) for c1 in x])
 
-#     @F.pandas_udf("float", PandasUDFType.SCALAR)
-#     def std_for_scaling2(x):
-#         '''
-#         This function computes the standard deviation of a time series x
-#         :param (list) x: The timeseries to compute the std for
-#         :return (float): Standard deviation
-#         '''
-#         # TODO: Add a time window on the std computation!
-#         return Series([np.around(np.std(c1), decimals=3) for c1 in x])
+    # @F.pandas_udf("float", PandasUDFType.SCALAR)
+    # def std_for_scaling2(x):
+    #     '''
+    #     This function computes the standard deviation of a time series x
+    #     :param (list) x: The timeseries to compute the std for
+    #     :return (float): Standard deviation
+    #     '''
+    #     # TODO: Add a time window on the std computation!
+    #     return Series([np.around(np.std(c1), decimals=3) for c1 in x])
 
-#     @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
-#     def scaling2(x, mean, std):
-#         '''
-#         This function scales a time series x
-#         :param (list) x: Timeseries to be scaled
-#         :param (float) mean: The mean to be used for scaling
-#         :param (float) std: The standard deviation to be used for scaling
-#         :return (list): A scaled timeseries
-#         '''
-#         #scaled = np.around((np.array(x) - mean) / std, decimals=3)
-#         #return scaled.tolist()
-#         return Series([np.around((np.array(c1) - c2) / c3, decimals=3) for c1,c2,c3 in zip(x,mean,std)])
+    # @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
+    # def scaling2(x, mean, std):
+    #     '''
+    #     This function scales a time series x
+    #     :param (list) x: Timeseries to be scaled
+    #     :param (float) mean: The mean to be used for scaling
+    #     :param (float) std: The standard deviation to be used for scaling
+    #     :return (list): A scaled timeseries
+    #     '''
+    #     #scaled = np.around((np.array(x) - mean) / std, decimals=3)
+    #     #return scaled.tolist()
+    #     return Series([np.around((np.array(c1) - c2) / c3, decimals=3) for c1,c2,c3 in zip(x,mean,std)])
 
-#     @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
-#     def get_X2(x, X_days, y_days):
-#         '''
-#         This function extracts the X part of train time series
-#         :param (list) x: Time series to be extracted from
-#         :param (int) X_days: number of days to be used for prediction
-#         :param (int) y_days: number of trailing days to skip
-#         :return (list): extracted timeseries
-#         '''
-#         #X_array = x[-X_days - y_days:-y_days]
-#         #X_array = np.around(X_array, decimals=3)
-#         #return X_array.tolist()
-#         return Series([np.around(c1[-c2-c3:-c3], decimals=3) for c1,c2,c3 in zip(x, X_days, y_days)])
+    # @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
+    # def get_X2(x, X_days, y_days):
+    #     '''
+    #     This function extracts the X part of train time series
+    #     :param (list) x: Time series to be extracted from
+    #     :param (int) X_days: number of days to be used for prediction
+    #     :param (int) y_days: number of trailing days to skip
+    #     :return (list): extracted timeseries
+    #     '''
+    #     #X_array = x[-X_days - y_days:-y_days]
+    #     #X_array = np.around(X_array, decimals=3)
+    #     #return X_array.tolist()
+    #     return Series([np.around(c1[-c2-c3:-c3], decimals=3) for c1,c2,c3 in zip(x, X_days, y_days)])
 
-#     @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
-#     def get_y2(x, y_days):
-#         '''
-#         This function extracts the y part of train time series
-#         :param (list) x: Time series to be extracted from
-#         :param (int) y_days: number of days to be used as y
-#         :return (list): extracted timeseries
-#         '''
-#         #y_array = x[-y_days:]
-#         #y_array = np.around(y_array, decimals=3)
-#         #return y_array.tolist()
-#         return Series([np.around(c1[-c2:], decimals=3) for c1,c2 in zip(x, y_days)])
+    # @F.pandas_udf("array<float>", PandasUDFType.SCALAR)
+    # def get_y2(x, y_days):
+    #     '''
+    #     This function extracts the y part of train time series
+    #     :param (list) x: Time series to be extracted from
+    #     :param (int) y_days: number of days to be used as y
+    #     :return (list): extracted timeseries
+    #     '''
+    #     #y_array = x[-y_days:]
+    #     #y_array = np.around(y_array, decimals=3)
+    #     #return y_array.tolist()
+    #     return Series([np.around(c1[-c2:], decimals=3) for c1,c2 in zip(x, y_days)])
 
-#     # trend computation
-#     ts_balance = ts_balance.withColumn('balance_trend_1MW',
-#                                        F.udf(lambda x, y: trend(x,y), "array<float>")('balance', F.lit(30)))
-#                                        #trend('balance', F.lit(30)))
-#     # detrend computation
-#     ts_balance = ts_balance.withColumn('balance_detrend_1MW',
-#                                        F.udf(lambda x, y: detrend(x,y), "array<float>")('balance', 'balance_trend_1MW'))
-#                                        #detrend('balance', 'balance_trend_1MW'))
-#     # scaling the detrended time series
-#     ts_balance = ts_balance.withColumn('mean',
-#                                        F.udf(lambda x: mean_for_scaling(x), "float")('balance_detrend_1MW'))
-#                                        #mean_for_scaling('balance_detrend_1MW'))
-#     ts_balance = ts_balance.withColumn('std',
-#                                        F.udf(lambda x: std_for_scaling(x), "float")('balance_detrend_1MW'))
-#                                        #std_for_scaling('balance_detrend_1MW'))
-#     ts_balance = ts_balance.withColumn("balance_detrend_1MW_scaled",
-#                                        F.udf(lambda x, y, z: scaling(x,y,z), "array<float>")('balance_detrend_1MW','mean','std'))
-#                                        #scaling('balance_detrend_1MW','mean','std'))
-#     ts_balance = ts_balance.withColumn('X',
-#                                        F.udf(lambda x, y, z: get_X(x,y,z), "array<float>")('balance_detrend_1MW_scaled', F.lit(365), F.lit(92)))
-#                                        #get_X('balance_detrend_1MW_scaled', F.lit(365), F.lit(92)))
-#     if not serving:
-#         ts_balance = ts_balance.withColumn('y',
-#                                            F.udf(lambda x, y: get_y(x,y), "array<float>")('balance_detrend_1MW_scaled', F.lit(92)))
-#                                            #get_y('balance_detrend_1MW_scaled', F.lit(92)))
+    # trend computation
+    ts_balance = ts_balance.withColumn('balance_trend_1MW',
+                                       F.udf(lambda x, y: trend(x,y), "array<float>")('balance', F.lit(30)))
+                                       #trend('balance', F.lit(30)))
+    # detrend computation
+    ts_balance = ts_balance.withColumn('balance_detrend_1MW',
+                                       F.udf(lambda x, y: detrend(x,y), "array<float>")('balance', 'balance_trend_1MW'))
+                                       #detrend('balance', 'balance_trend_1MW'))
+    # scaling the detrended time series
+    ts_balance = ts_balance.withColumn('mean',
+                                       F.udf(lambda x: mean_for_scaling(x), "float")('balance_detrend_1MW'))
+                                       #mean_for_scaling('balance_detrend_1MW'))
+    ts_balance = ts_balance.withColumn('std',
+                                       F.udf(lambda x: std_for_scaling(x), "float")('balance_detrend_1MW'))
+                                       #std_for_scaling('balance_detrend_1MW'))
+    ts_balance = ts_balance.withColumn("balance_detrend_1MW_scaled",
+                                       F.udf(lambda x, y, z: scaling(x,y,z), "array<float>")('balance_detrend_1MW','mean','std'))
+                                       #scaling('balance_detrend_1MW','mean','std'))
+    ts_balance = ts_balance.withColumn('X',
+                                       F.udf(lambda x, y, z: get_X(x,y,z), "array<float>")('balance_detrend_1MW_scaled', F.lit(365), F.lit(92)))
+                                       #get_X('balance_detrend_1MW_scaled', F.lit(365), F.lit(92)))
+    if not serving:
+        ts_balance = ts_balance.withColumn('y',
+                                           F.udf(lambda x, y: get_y(x,y), "array<float>")('balance_detrend_1MW_scaled', F.lit(92)))
+                                           #get_y('balance_detrend_1MW_scaled', F.lit(92)))
 
-#     # Extrapolation of trend to next 3 months (92 days)
-#     # Need to have the end date + 1 day
-#     end_date_plusOneDay = datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=1)
-#     end_date_plusOneDay = end_date_plusOneDay.strftime("%Y-%m-%d")
+    # Extrapolation of trend to next 3 months (92 days)
+    # Need to have the end date + 1 day
+    end_date_plusOneDay = datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=1)
+    end_date_plusOneDay = end_date_plusOneDay.strftime("%Y-%m-%d")
 
-#     # extrapolation time
-#     end_date_plus92Day = datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=92)
-#     end_date_plus92Day = end_date_plus92Day.strftime("%Y-%m-%d")
-#     extrapolated_spark_df = spark.sql("SELECT sequence(to_date('{0}'), to_date('{1}'), interval 1 day) as transactiondate_next3months".format(end_date_plusOneDay, end_date_plus92Day))
+    # extrapolation time
+    end_date_plus92Day = datetime.strptime(end_date, "%Y-%m-%d") + relativedelta(days=92)
+    end_date_plus92Day = end_date_plus92Day.strftime("%Y-%m-%d")
+    extrapolated_spark_df = spark.sql("SELECT sequence(to_date('{0}'), to_date('{1}'), interval 1 day) as transactiondate_next3months".format(end_date_plusOneDay, end_date_plus92Day))
 
-#     # create all combinations of customers and dates, number_of_rows = n_customer x extrapolated_days(92)
-#     ts_balance = ts_balance.crossJoin(extrapolated_spark_df)
+    # create all combinations of customers and dates, number_of_rows = n_customer x extrapolated_days(92)
+    ts_balance = ts_balance.crossJoin(extrapolated_spark_df)
 
-#     ts_balance = ts_balance.withColumn('trend_next_3months_1MW',
-#                                        F.udf(lambda aa,bb,cc,dd,ee: extrapolate_trend(aa,bb,cc,dd,ee), "array<float>")('balance_trend_1MW', F.lit(183), F.lit(92), F.lit(True), F.lit(serving)))
-#                                        #extrapolate_trend('balance_trend_1MW', F.lit(183), F.lit(92), F.lit(True), F.lit(serving)))
-#     # trajectory metric
-#     if serving:
-#         ts_balance = ts_balance.withColumn('trajectory_6months',
-#                                            F.udf(lambda x,y,z: trajectory(x,y,z), "array<float>")('balance_trend_1MW', F.lit(6), F.lit(1)))
-#                                            #trajectory('balance_trend_1MW', F.lit(6), F.lit(1)))
-#     return ts_balance
-
-
-# #@F.udf("array<float>")
-# def trend(x,window_size_days):
-#     '''
-#     This function computes the trend of a time series x, using a time window of size window_size_days
-#     :param (list) x: Timeseries to operate on
-#     :param (int) window_size_days: Window size for seasonality decomposition
-#     :return (list): Trend values, same length as x
-#     '''
-#     decomposed_ts = seasonal_decompose(np.array(x), model='additive', freq=window_size_days, extrapolate_trend=1)
-#     trend = np.around(decomposed_ts.trend, decimals=3)
-#     return trend.tolist()
-
-# #@F.udf("array<float>")
-# def detrend(x, trend):
-#     '''
-#     This function subtracts a given trend from a timeseries
-#     :param (list) x: Timeseries to operate on
-#     :param (list) trend: The trend to be subtracted
-#     :return (list): Detrended timeseries
-#     '''
-#     detrend = np.array(x) #np.around(np.array(x) - np.array(trend), decimals=3)
-#     return detrend.tolist()
+    ts_balance = ts_balance.withColumn('trend_next_3months_1MW',
+                                       F.udf(lambda aa,bb,cc,dd,ee: extrapolate_trend(aa,bb,cc,dd,ee), "array<float>")('balance_trend_1MW', F.lit(183), F.lit(92), F.lit(True), F.lit(serving)))
+                                       #extrapolate_trend('balance_trend_1MW', F.lit(183), F.lit(92), F.lit(True), F.lit(serving)))
+    # trajectory metric
+    if serving:
+        ts_balance = ts_balance.withColumn('trajectory_6months',
+                                           F.udf(lambda x,y,z: trajectory(x,y,z), "array<float>")('balance_trend_1MW', F.lit(6), F.lit(1)))
+                                           #trajectory('balance_trend_1MW', F.lit(6), F.lit(1)))
+    return ts_balance
 
 
-# #@F.udf("array<float>")
-# def retrend(x, trend):
-#     '''
-#     This function adds a given trend to a timeseries
-#     :param (list) x: Timeseries to operate on
-#     :param (list) trend: The trend to be added
-#     :return (list): Retrended timeseries
-#     '''
-#     retrend = np.array(x) #np.around(np.array(x) + np.array(trend), decimals=3)
-#     return retrend.tolist()
+#@F.udf("array<float>")
+def trend(x,window_size_days):
+    '''
+    This function computes the trend of a time series x, using a time window of size window_size_days
+    :param (list) x: Timeseries to operate on
+    :param (int) window_size_days: Window size for seasonality decomposition
+    :return (list): Trend values, same length as x
+    '''
+    decomposed_ts = seasonal_decompose(np.array(x), model='additive', freq=window_size_days, extrapolate_trend=1)
+    trend = np.around(decomposed_ts.trend, decimals=3)
+    return trend.tolist()
 
-# #@F.udf("float")
-# def mean_for_scaling(x):
-#     '''
-#     This function computes the mean of a time series x
-#     :param (list) x: The timeseries to compute the mean for
-#     :return (float): Mean value
-#     '''
-#     # TODO: Add a time window on the mean computation!
-#     return float(np.around(np.mean(x), decimals=3))
-
-# #@F.udf("float")
-# def std_for_scaling(x):
-#     '''
-#     This function computes the standard deviation of a time series x
-#     :param (list) x: The timeseries to compute the std for
-#     :return (float): Standard deviation
-#     '''
-#     # TODO: Add a time window on the std computation!
-#     return float(np.around(np.std(x), decimals=3))
-
-# #@F.udf("array<float>")
-# def scaling(x, mean, std):
-#     '''
-#     This function scales a time series x
-#     :param (list) x: Timeseries to be scaled
-#     :param (float) mean: The mean to be used for scaling
-#     :param (float) std: The standard deviation to be used for scaling
-#     :return (list): A scaled timeseries
-#     '''
-#     scaled = np.around((np.array(x) - mean) / std, decimals=3)
-#     return scaled.tolist()
-
-# #@F.udf("array<float>")
-# def rescaling(x, mean, std):
-#     '''
-#     This function rescales a time series x
-#     :param (list) x: Timeseries to be rescaled
-#     :param (float) mean: The mean to be used for rescaling
-#     :param (float) std: The standard deviation to be used for rescaling
-#     :return (list): A rescaled timeseries
-#     '''
-
-#     rescaled = np.around((np.array(x) * std) + mean, decimals=3)
-#     return rescaled.tolist()
+#@F.udf("array<float>")
+def detrend(x, trend):
+    '''
+    This function subtracts a given trend from a timeseries
+    :param (list) x: Timeseries to operate on
+    :param (list) trend: The trend to be subtracted
+    :return (list): Detrended timeseries
+    '''
+    detrend = np.array(x) #np.around(np.array(x) - np.array(trend), decimals=3)
+    return detrend.tolist()
 
 
-# #@F.udf("array<float>")
-# def get_X(x, X_days, y_days):
-#     '''
-#     This function extracts the X part of train time series
-#     :param (list) x: Time series to be extracted from
-#     :param (int) X_days: number of days to be used for prediction
-#     :param (int) y_days: number of trailing days to skip
-#     :return (list): extracted timeseries
-#     '''
+#@F.udf("array<float>")
+def retrend(x, trend):
+    '''
+    This function adds a given trend to a timeseries
+    :param (list) x: Timeseries to operate on
+    :param (list) trend: The trend to be added
+    :return (list): Retrended timeseries
+    '''
+    retrend = np.array(x) #np.around(np.array(x) + np.array(trend), decimals=3)
+    return retrend.tolist()
 
-#     X_array = x[-X_days - y_days:-y_days]
-#     X_array = np.around(X_array, decimals=3)
-#     return X_array.tolist()
+#@F.udf("float")
+def mean_for_scaling(x):
+    '''
+    This function computes the mean of a time series x
+    :param (list) x: The timeseries to compute the mean for
+    :return (float): Mean value
+    '''
+    # TODO: Add a time window on the mean computation!
+    return float(np.around(np.mean(x), decimals=3))
 
-# #@F.udf("array<float>")
-# def get_y(x, y_days):
-#     '''
-#     This function extracts the y part of train time series
-#     :param (list) x: Time series to be extracted from
-#     :param (int) y_days: number of days to be used as y
-#     :return (list): extracted timeseries
-#     '''
+#@F.udf("float")
+def std_for_scaling(x):
+    '''
+    This function computes the standard deviation of a time series x
+    :param (list) x: The timeseries to compute the std for
+    :return (float): Standard deviation
+    '''
+    # TODO: Add a time window on the std computation!
+    return float(np.around(np.std(x), decimals=3))
 
-#     y_array = x[-y_days:]
-#     y_array = np.around(y_array, decimals=3)
-#     return y_array.tolist()
+#@F.udf("array<float>")
+def scaling(x, mean, std):
+    '''
+    This function scales a time series x
+    :param (list) x: Timeseries to be scaled
+    :param (float) mean: The mean to be used for scaling
+    :param (float) std: The standard deviation to be used for scaling
+    :return (list): A scaled timeseries
+    '''
+    scaled = np.around((np.array(x) - mean) / std, decimals=3)
+    return scaled.tolist()
 
-# #@F.udf("array<float>")
-# def extrapolate_trend(x, window_size_days, extrapolation_window_size_days, median=True, serving_mode=False):
-#     '''
-#     This function extrapolates the trend for time series x
-#     :param (list) x: Timeseries to be operated on
-#     :param (int) window_size_days: number of days to be used for calculation of the trend
-#     :param (int) extrapolation_window_size_days: number of days for extrapolation
-#     :param (boolean) median: should median be used to calculate the aggregate slope, default is True
-#     :param (boolean) serving_mode: if we are in the serving mode, default is False
-#     :return (list):  extrapolated trend
-#     '''
+#@F.udf("array<float>")
+def rescaling(x, mean, std):
+    '''
+    This function rescales a time series x
+    :param (list) x: Timeseries to be rescaled
+    :param (float) mean: The mean to be used for rescaling
+    :param (float) std: The standard deviation to be used for rescaling
+    :return (list): A rescaled timeseries
+    '''
 
-#     slope = np.gradient(x)
+    rescaled = np.around((np.array(x) * std) + mean, decimals=3)
+    return rescaled.tolist()
 
-#     if not serving_mode:  # if mode is "train"
-#         if median:
-#             aggregated_slope = np.nanmedian(slope[-window_size_days - extrapolation_window_size_days:])
-#         else:
-#             aggregated_slope = np.nanmean(slope[-window_size_days - extrapolation_window_size_days:])
-#     else:  # if mode is "serve"
-#         if median:
-#             aggregated_slope = np.nanmedian(slope[-window_size_days:])
-#         else:
-#             aggregated_slope = np.nanmean(slope[-window_size_days:])
 
-#     # we build the extrapolation
-#     trend_extrapolate = np.zeros(extrapolation_window_size_days)
-#     if not serving_mode:  # if mode is "train"
-#         trend_extrapolate[0] = aggregated_slope + x[-1 - extrapolation_window_size_days]
-#     else:
-#         trend_extrapolate[0] = aggregated_slope + x[-1]
+#@F.udf("array<float>")
+def get_X(x, X_days, y_days):
+    '''
+    This function extracts the X part of train time series
+    :param (list) x: Time series to be extracted from
+    :param (int) X_days: number of days to be used for prediction
+    :param (int) y_days: number of trailing days to skip
+    :return (list): extracted timeseries
+    '''
 
-#     for day in range(1, extrapolation_window_size_days):
-#         trend_extrapolate[day] = aggregated_slope + trend_extrapolate[day - 1]
+    X_array = x[-X_days - y_days:-y_days]
+    X_array = np.around(X_array, decimals=3)
+    return X_array.tolist()
 
-#     trend_extrapolate = np.around(trend_extrapolate, decimals=3)
-#     return trend_extrapolate.tolist()
+#@F.udf("array<float>")
+def get_y(x, y_days):
+    '''
+    This function extracts the y part of train time series
+    :param (list) x: Time series to be extracted from
+    :param (int) y_days: number of days to be used as y
+    :return (list): extracted timeseries
+    '''
 
-# #@F.udf("float")
-# def trajectory(x, window_size_months, median=True):
-#     '''
-#     This function computes the customer "trajectory", which is computed as the median/mean value
-#     of the gradients of the time series trend, over the last window_size_months.
-#     If median is True gives median of slope, otherwise gives mean of slope
-#     :param (list) x: Timeseries to be operated on
-#     :param (int) window_size_months: number of months to be used for calculation
-#     :param (boolean) median: should median be used to calculate the aggregate slope, default is True
-#     :return (float): the aggregated slope fo the given time window
-#     '''
+    y_array = x[-y_days:]
+    y_array = np.around(y_array, decimals=3)
+    return y_array.tolist()
 
-#     slope = np.gradient(x)
-#     n_days = int(30.5 * window_size_months)
+#@F.udf("array<float>")
+def extrapolate_trend(x, window_size_days, extrapolation_window_size_days, median=True, serving_mode=False):
+    '''
+    This function extrapolates the trend for time series x
+    :param (list) x: Timeseries to be operated on
+    :param (int) window_size_days: number of days to be used for calculation of the trend
+    :param (int) extrapolation_window_size_days: number of days for extrapolation
+    :param (boolean) median: should median be used to calculate the aggregate slope, default is True
+    :param (boolean) serving_mode: if we are in the serving mode, default is False
+    :return (list):  extrapolated trend
+    '''
 
-#     # we take the median of the daily slope
-#     if median:
-#         aggregated_slope = np.nanmedian(slope[-n_days:])
-#     else:
-#         aggregated_slope = np.nanmean(slope[-n_days:])
-#     result = aggregated_slope * 30.5  # we scale it to a month slope #TODO: why multiplying by 30.5?
-#     return float(np.around(result, decimals=3))
+    slope = np.gradient(x)
+
+    if not serving_mode:  # if mode is "train"
+        if median:
+            aggregated_slope = np.nanmedian(slope[-window_size_days - extrapolation_window_size_days:])
+        else:
+            aggregated_slope = np.nanmean(slope[-window_size_days - extrapolation_window_size_days:])
+    else:  # if mode is "serve"
+        if median:
+            aggregated_slope = np.nanmedian(slope[-window_size_days:])
+        else:
+            aggregated_slope = np.nanmean(slope[-window_size_days:])
+
+    # we build the extrapolation
+    trend_extrapolate = np.zeros(extrapolation_window_size_days)
+    if not serving_mode:  # if mode is "train"
+        trend_extrapolate[0] = aggregated_slope + x[-1 - extrapolation_window_size_days]
+    else:
+        trend_extrapolate[0] = aggregated_slope + x[-1]
+
+    for day in range(1, extrapolation_window_size_days):
+        trend_extrapolate[day] = aggregated_slope + trend_extrapolate[day - 1]
+
+    trend_extrapolate = np.around(trend_extrapolate, decimals=3)
+    return trend_extrapolate.tolist()
+
+#@F.udf("float")
+def trajectory(x, window_size_months, median=True):
+    '''
+    This function computes the customer "trajectory", which is computed as the median/mean value
+    of the gradients of the time series trend, over the last window_size_months.
+    If median is True gives median of slope, otherwise gives mean of slope
+    :param (list) x: Timeseries to be operated on
+    :param (int) window_size_months: number of months to be used for calculation
+    :param (boolean) median: should median be used to calculate the aggregate slope, default is True
+    :return (float): the aggregated slope fo the given time window
+    '''
+
+    slope = np.gradient(x)
+    n_days = int(30.5 * window_size_months)
+
+    # we take the median of the daily slope
+    if median:
+        aggregated_slope = np.nanmedian(slope[-n_days:])
+    else:
+        aggregated_slope = np.nanmean(slope[-n_days:])
+    result = aggregated_slope * 30.5  # we scale it to a month slope #TODO: why multiplying by 30.5?
+    return float(np.around(result, decimals=3))
 
 
 # def post_processing(ts_balance):
@@ -934,211 +934,24 @@ def time_series_generator(size=500,
         
 #     return fig1, fig2   
   
-  
-# # def score(data_conf, model_conf, evaluation=False, mlflow_model_version=0, **kwargs):
 
-# #     try:
-# #         print("----------------------------------")
-# #         print("Starting Cashflow DL Model Scoring")
-# #         print("----------------------------------")
-# #         print("")
-
-# #         # ==============================
-# #         # 0. Main parameters definitions
-# #         # ==============================
-
-# #         # Size of X and y arrays definition
-# #         N_days_X, N_days_y = int(data_conf['number_of_historical_days']), int(data_conf['number_of_predicted_days']) #365, 92
-# #         print('Number of days used for prediction (X): {0}'.format(N_days_X))
-# #         print('Number of days predicted (y): {0}'.format(N_days_y))
-# #         print('')
-
-# #         # Date range definition
-# #         start_date, end_date = data_conf['start_date'], data_conf['end_date']
-# #         start_date_dt, end_date_dt, start_date_prediction, end_date_prediction, end_date_plusOneDay, end_date_minus_6month = dates_definitions(start_date, end_date, N_days_X, N_days_y)
-# #         print('Date range: [{0}, {1}]'.format(start_date, end_date))
-# #         print('')
-
-# #         model_name = model_conf['model_name']
+def time_series_cleaning(x,threshold_count):
+    '''
+    This function removes the time series which are 
+    - (option 1) made only of zeroes, or
+    - (option 2) made of too little changes, below a threshold defined (threshold_count)
+    It is indeed sometimes unuseful (and harmful for convergence) to train autoencoder
     
-# #         #print("Step 0 completed (main parameters definition)")
+    on time series containing little information
+    :param (list) x: Timeseries to operate on
+    :param (int) threshold_count:the threshold of number of changes below which a time series is removed
+    :return (int) keep_ts: label that says if the time series is to be kept (1) or not (0)
+    '''
 
-# #     except Exception as e:
-# #         print("Errored on initialization")
-# #         print("Exception Trace: {0}".format(e))
-# #         print(traceback.format_exc())
-# #         raise e
+    x = np.array(x)
 
-# #     try:
-# #         # ==================================
-# #         # S.1 Pre-processings before serving
-# #         # ==================================
-
-# #         start_time_S1 = tm.time()
-
-# #         # Loading dataset
-# #         if not evaluation: table_in = data_conf['synthetic_data']['table_to_score'] # for scoring new data
-# #         if evaluation: table_in = data_conf['synthetic_data']['table_test_for_performance'] # for performance evaluation on historical data
-        
-# #         ts_balance = spark.read.parquet("/mnt/test/{0}.parquet".format(table_in)).cache()
-
-# #         print('Reading table {0}'.format(table_in))
-# #         #print('Size of table: ',ts_balance.count())
-# #         #print('ts_balance.rdd.getNumPartitions()',ts_balance.rdd.getNumPartitions())
-
-# #         if not evaluation:
-# #             ts_balance = pre_processing(ts_balance, end_date, spark, serving=True)
-# #         if evaluation:
-# #             ts_balance = pre_processing(ts_balance, end_date, spark, serving=False)
-# #         ts_balance.show(3)
-
-# #         # Saving prepared dataset
-# #         if not evaluation: table_out = data_conf['synthetic_data']['cashflow_s1_out_scoring'] # for scoring new data
-# #         if evaluation: table_out = 'cashflow_s1_out_evaluation' # for performance evaluation on historical data
-        
-# #         ts_balance.write.format("parquet").mode("overwrite").save("/mnt/test/{0}.parquet".format(table_out))
-
-# #         ts_balance.unpersist()
-# #         spark.catalog.clearCache()
-# #         end_time_S1 = tm.time()
-# #         print("Step S.1 completed: pre-processings before serving")
-# #         print("Time spent: ", end_time_S1-start_time_S1)
-
-# #     except Exception as e:
-# #         print("Errored on step S.1: pre-processings before serving")
-# #         print("Exception Trace: {0}".format(e))
-# #         print(traceback.format_exc())
-# #         raise e
-
-# #     try:
-# #         # ===================
-# #         # S.2 Model serving
-# #         # ===================
-
-# #         start_time_S2 = tm.time()
-
-# #         # Loading dataset
-# #         if not evaluation: table_in = data_conf['synthetic_data']['cashflow_s1_out_scoring'] # for scoring new data
-# #         if evaluation: table_in = 'cashflow_s1_out_evaluation' # for performance evaluation on historical data
-        
-# #         ts_balance = spark.read.parquet("/mnt/test/{0}.parquet".format(table_in))
-# #         ts_balance.cache()
-# #         print('Number of  partitions: ', ts_balance.rdd.getNumPartitions())
-        
-# #         # Load model from MLflow model registry #https://www.mlflow.org/docs/latest/model-registry.html        
-# #         mlflow_model_name = 'cashflow-poc'
-# #         #mlflow_model_stage = 'Staging'
-# #         #mlflow_model_version = '2'
-
-# #         # Detecting the model dictionary among available registered model. We use the model version as identifier of the one we are looking for
-# #         client = MlflowClient()
-# #         for mv in client.search_model_versions("name='{0}'".format(mlflow_model_name)):
-# #             if int(dict(mv)['version'])==mlflow_model_version: 
-# #                 model_dict = dict(mv)
-# #                 break                 
-
-# #         def get_local_path_from_dbfs(dbfs_path):
-# #             '''
-# #             This get the local version of the dbfs path, i.e. replaces "dbfs:" by "/dbfs", for local APIs use.
-# #             '''
-# #             #os.path.join("/dbfs", dbfs_path.lstrip("dbfs:"))  #why does not work??? 
-# #             return "/dbfs"+dbfs_path.lstrip("dbfs:")  
-
-# #         mlflow_path = get_local_path_from_dbfs(model_dict['source']) + '/tfmodel'       
-
-# #         # It detects the name id of the pb model file  
-# #         #file = [f for f in os.listdir('/dbfs/mnt/test/{0}/model/'.format(model_name))]
-# #         #export_dir_saved = "/dbfs/mnt/test/{0}/model/".format(model_name)+file[0]
-        
-# #         #def rdd_scoring(numpy_array):
-# #         #    predictor_fn = tf.contrib.predictor.from_saved_model(export_dir = export_dir_saved)
-# #         #    return predictor_fn({'input': numpy_array.reshape(-1, N_days_X, 1) })        
-          
-# #         @F.udf("array<float>")
-# #         def udf_scoring(x):
-# #             predictor_fn = tf.contrib.predictor.from_saved_model(export_dir = mlflow_path) #export_dir_saved)
-# #             return np.around(predictor_fn({'input': np.array(x).reshape(-1, N_days_X, 1) })['output'][0].tolist(), decimals=3).tolist()         
-        
-# #         @F.pandas_udf("array<float>")
-# #         def pandas_udf_scoring(x):
-# #             predictor_fn = tf.contrib.predictor.from_saved_model(export_dir = mlflow_path) #export_dir_saved) 
-# #             return Series([np.around(predictor_fn({'input': np.array(v).reshape(-1, N_days_X, 1)})['output'][0], decimals=3) for v in x])
-
-# #         ts_balance = ts_balance.withColumn('y_pred', pandas_udf_scoring('X'))
-# #         #ts_balance = ts_balance.withColumn('y_pred', udf_scoring('X'))
-
-# #         print('ts_balance.rdd.getNumPartitions()',ts_balance.rdd.getNumPartitions())
-# #         ts_balance.show(3)
-# #         #print('Size of table: ',ts_balance.count())
-
-# #         # Saving prepared dataset
-# #         if not evaluation: table_out = data_conf['synthetic_data']['cashflow_s2_out_scoring'] # for scoring new data
-# #         if evaluation: table_out = 'cashflow_s2_out_evaluation' # for performance evaluation on historical data
-        
-# #         ts_balance.write.format("parquet").mode("overwrite").save("/mnt/test/{0}.parquet".format(table_out))
-
-# #         ts_balance.unpersist()
-# #         spark.catalog.clearCache()
-# #         end_time_S2 = tm.time()
-# #         print("Step S.2 completed: model serving")
-# #         print("Time spent: ", end_time_S2-start_time_S2)
-
-# #     except Exception as e:
-# #         print("Errored on step S.2: model serving")
-# #         print("Exception Trace: {0}".format(e))
-# #         print(traceback.format_exc())
-# #         raise e
-
-# #     try:
-# #         # ===================
-# #         # S.3 Post-processing
-# #         # ===================
-
-# #         start_time_S3 = tm.time()
-
-# #         # Loading dataset
-# #         if not evaluation: table_in = data_conf['synthetic_data']['cashflow_s2_out_scoring'] # for scoring new data
-# #         if evaluation: table_in  = 'cashflow_s2_out_evaluation' # for performance evaluation on historical data
-        
-# #         ts_balance = spark.read.parquet("/mnt/test/{0}.parquet".format(table_in)).cache()
-
-# #         ts_balance = post_processing(ts_balance)
-# #         ts_balance.show(3)
-
-# #         # Saving prepared dataset
-# #         if not evaluation: table_out = data_conf['synthetic_data']['table_scored']
-# #         if evaluation: table_out = data_conf['synthetic_data']['table_test_for_performance_scored']
-        
-# #         ts_balance.write.format("parquet").mode("overwrite").save("/mnt/test/{0}.parquet".format(table_out))
-
-# #         ts_balance.unpersist()
-# #         end_time_S3 = tm.time()
-# #         print("Step S.3 completed: post-processing")
-# #         print("Time spent: ", end_time_S3-start_time_S3)
-
-# #     except Exception as e:
-# #         print("Errored on step S.3: post-processing")
-# #         print("Exception Trace: {0}".format(e))
-# #         print(traceback.format_exc())
-# #         raise e  
-
-# def time_series_cleaning(x,threshold_count):
-#     '''
-#     This function removes the time series which are 
-#     - (option 1) made only of zeroes, or
-#     - (option 2) made of too little changes, below a threshold defined (threshold_count)
-#     It is indeed sometimes unuseful (and harmful for convergence) to train autoencoder
-    
-#     on time series containing little information
-#     :param (list) x: Timeseries to operate on
-#     :param (int) threshold_count:the threshold of number of changes below which a time series is removed
-#     :return (int) keep_ts: label that says if the time series is to be kept (1) or not (0)
-#     '''
-
-#     x = np.array(x)
-
-#     if np.all(x == x[0]): # test if all values are the same (i.e. no transactions in the array)
-#         return 0
-#     elif np.diff(x).astype(bool).sum(axis=0) < threshold_count: # This counts the non-zeros CHANGES (diff) in the ts
-#         return 0
-#     else: return 1
+    if np.all(x == x[0]): # test if all values are the same (i.e. no transactions in the array)
+        return 0
+    elif np.diff(x).astype(bool).sum(axis=0) < threshold_count: # This counts the non-zeros CHANGES (diff) in the ts
+        return 0
+    else: return 1

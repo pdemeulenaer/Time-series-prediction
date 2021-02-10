@@ -45,16 +45,28 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          # We need to write the pipe the conf into databricks configure --token since
-          # that command only takes inputs from stdin. 
-          conf=`cat << EOM
+          # # We need to write the pipe the conf into databricks configure --token since
+          # # that command only takes inputs from stdin. 
+          # conf=`cat << EOM
+          # $(databricks.host)
+          # $(databricks.token)
+          # EOM`
+          
+          # # For password auth there are three lines expected
+          # # hostname, username, password
+          # echo "$conf" | databricks configure --token
+          databricks configure --token <<EOF
           $(databricks.host)
           $(databricks.token)
-          EOM`
-          
-          # For password auth there are three lines expected
-          # hostname, username, password
-          echo "$conf" | databricks configure --token
+          EOF
+
+    - task: Bash@3
+      displayName: 'Detect list of clusters'
+      inputs:
+        targetType: 'inline'
+        script: |
+          databricks clusters list
+
     # - task: Bash@3
     #   displayName: 'Create Notebook Path'
     #   inputs:

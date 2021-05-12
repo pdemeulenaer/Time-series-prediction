@@ -32,6 +32,15 @@ spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "false")
 
 # COMMAND ----------
 
+# Not needed if these files are not in Azure Blob Storage
+# cwd = "/dbfs/mnt/demo/"
+# data_conf = Get_Data_From_JSON(cwd + "data.json")
+# model_conf = Get_Data_From_JSON(cwd + "config.json")
+# print(data_conf)
+# print(model_conf)
+
+# COMMAND ----------
+
 # blob_name = "blob1"
 # account_name = "aacdlml0461491171"
 # cwd = "wasbs://"+blob_name+"@"+account_name+".blob.core.windows.net/"
@@ -267,16 +276,17 @@ timeseries_spark.write.format("delta").mode("overwrite").save("/mnt/delta/{0}".f
 
 # COMMAND ----------
 
+# Done!
+# if you want to check that data is correctly created, you can read it like here:
+
+# COMMAND ----------
+
 # read delta table or a table: https://docs.databricks.com/delta/delta-batch.html#read-a-table
 
 #spark.table("events")    # query table in the metastore
 
 bidule = spark.read.format("delta").load("/mnt/delta/{0}".format(table_out))  # query table by path
 bidule.show(3)                                         
-
-# COMMAND ----------
-
-bidule.count()
 
 # COMMAND ----------
 

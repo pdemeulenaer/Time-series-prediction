@@ -85,8 +85,8 @@ spark.conf.set("spark.databricks.io.cache.enabled", "false")
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "false")
 
-# blob_name = ""
-# account_name = ""
+# blob_name = "blob1"
+# account_name = "aacdlml0461491171"
 # storageKey1 = dbutils.secrets.get(scope = "key-vault-secrets-cloudai", key = "storageaccountcloudaiKey1")
 # spark.conf.set("fs.azure.account.key."+account_name+".blob.core.windows.net", storageKey1)
 
@@ -318,7 +318,8 @@ def score(data_conf, model_conf, evaluation=False, **kwargs):
         def pandas_udf_scoring(x):
             #predictor_fn = tf.contrib.predictor.from_saved_model(export_dir = export_dir_saved) #mlflow_path) 
             #return Series([np.around(predictor_fn({'input': np.array(v).reshape(-1, N_days_X, 1)})['output'][0], decimals=3) for v in x])            
-            new_model = tf.keras.models.load_model(export_dir_saved) #mlflow_path)
+            new_model = tf.keras.models.load_model(export_dir_saved)
+            #new_model = mlflow.tensorflow.load_model(mlflow_path)
             return Series([np.around( new_model.predict( np.array(v).reshape(-1, N_days_X, 1) ).reshape(N_days_y), decimals=3) for v in x])       
 
         ts_balance = ts_balance.withColumn('y_pred', pandas_udf_scoring('X'))
@@ -435,6 +436,7 @@ def evaluate(data_conf, model_conf, scoring=True, **kwargs):
 
         # Load model from MLflow model registry #https://www.mlflow.org/docs/latest/model-registry.html        
         #mlflow_model_name = 'cashflow-poc'
+        mlflow_model_name = model_conf['model_name']
         if environment == 'prod' : 
             mlflow_model_stage = 'Production'
         else:
@@ -498,10 +500,10 @@ def evaluate(data_conf, model_conf, scoring=True, **kwargs):
         
         
 if __name__ == "__main__":
-    if dbutils.widgets.getArgument("environment") == 'prod' : 
+    if dbutils.widgets.getArgument("environment") == 'prod' : # if prod, the model is served
         score(data_conf, model_conf, evaluation=False)
     else:
-        evaluate(data_conf, model_conf, scoring=True)   
+        evaluate(data_conf, model_conf, scoring=True)   # if NOT prod, the model is evaluated
 
 # COMMAND ----------
 
